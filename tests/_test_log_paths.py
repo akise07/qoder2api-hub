@@ -31,4 +31,20 @@ with open(os.path.join(ROOT,'start-qoder-proxy.bat'),'rb') as f:
     content=f.read()
 check('bat stays ASCII',all(x<128 for x in content))
 check('launcher logs in shared folder',b'QD_LOG_DIR' in content and b'gateway.err.log' in content)
+with tempfile.TemporaryDirectory() as d:
+    with mock.patch.dict(os.environ,{'QD_LOG_DIR':d},clear=False):
+        import io,threading
+        tee=L._LogTee(io.StringIO(),os.path.join(d,'tee.log'))
+        tee.write('bad \udce4 char\n')
+        tee.file.close()
+        tee.write('after close\n')
+        check('tee never raises (unencodable text / closed log file)',True)
+        old_hooks=(threading.excepthook,sys.unraisablehook)
+        crash=L.install_crash_logging(d)
+        t=threading.Thread(target=lambda:(_ for _ in ()).throw(ValueError('crash probe')),name='probe')
+        t.start();t.join()
+        threading.excepthook,sys.unraisablehook=old_hooks
+        body=open(crash,encoding='utf-8').read() if os.path.isfile(crash) else ''
+        check('thread crash leaves one readable record',body.count('[thread-crash]')==1)
+        check('thread crash keeps the traceback', 'ValueError: crash probe' in body)
 finish()

@@ -14624,6 +14624,7 @@ def main():
             % qoder_accounts.vpc_config_error())
         raise SystemExit(1)
     qoder_logpaths.install_stream_logging(os.path.dirname(os.path.abspath(__file__)))
+    qoder_logpaths.install_crash_logging(os.path.dirname(os.path.abspath(__file__)))
     if not args.usage_dir and not os.environ.get("QD_PROXY_USAGE_DIR"):
         _migration = qoder_logpaths.migrate_legacy_usage(
             os.path.dirname(os.path.abspath(__file__)), USAGE_DIR)
